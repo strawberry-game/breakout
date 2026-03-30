@@ -122,6 +122,24 @@
       margin-top: 16px;
     }
 
+    .level-select {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .level-btn {
+      min-width: 110px;
+    }
+
+    .level-btn.active {
+      background: linear-gradient(135deg, var(--accent2), #16a34a);
+      color: white;
+      border: none;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.22) inset;
+    }
+
     button {
       appearance: none;
       border: none;
@@ -258,7 +276,13 @@
           <li>スペースキー：開始 / 再開</li>
           <li>スマホ：下の左右ボタンで移動</li>
           <li>ボールを落とすと残機が 1 つ減ります</li>
+          <li>EASY / NORMAL / HARD を選ぶと、そのレベルから開始します</li>
         </ul>
+        <div class="level-select">
+          <button class="secondary level-btn active" id="easyBtn" data-level="1">EASY</button>
+          <button class="secondary level-btn" id="normalBtn" data-level="2">NORMAL</button>
+          <button class="secondary level-btn" id="hardBtn" data-level="3">HARD</button>
+        </div>
         <div class="button-row">
           <button class="primary" id="startBtn">ゲーム開始</button>
           <button class="secondary" id="resetBtn">最初からやり直す</button>
@@ -276,7 +300,7 @@
         <button class="secondary" id="rightBtn">▶</button>
       </div>
 
-      <div class="message" id="messageBox">「ゲーム開始」を押すとスタートします。</div>
+      <div class="message" id="messageBox">難易度を選んで「ゲーム開始」を押すとスタートします。</div>
     </section>
   </div>
 
@@ -293,6 +317,9 @@
     const resetBtn = document.getElementById('resetBtn');
     const leftBtn = document.getElementById('leftBtn');
     const rightBtn = document.getElementById('rightBtn');
+    const easyBtn = document.getElementById('easyBtn');
+    const normalBtn = document.getElementById('normalBtn');
+    const hardBtn = document.getElementById('hardBtn');
 
     const paddle = {
       width: 140,
@@ -325,6 +352,7 @@
     let score = 0;
     let lives = 3;
     let level = 1;
+    let selectedStartLevel = 1;
     let remainingBlocks = 0;
     let isRunning = false;
     let isGameOver = false;
@@ -334,6 +362,22 @@
 
     function setMessage(text) {
       messageBox.textContent = text;
+    }
+
+    function updateLevelButtons() {
+      [easyBtn, normalBtn, hardBtn].forEach(function(btn) {
+        btn.classList.remove('active');
+      });
+
+      if (selectedStartLevel === 1) easyBtn.classList.add('active');
+      if (selectedStartLevel === 2) normalBtn.classList.add('active');
+      if (selectedStartLevel === 3) hardBtn.classList.add('active');
+    }
+
+    function selectStartLevel(nextLevel) {
+      selectedStartLevel = nextLevel;
+      updateLevelButtons();
+      fullReset();
     }
 
     function createBricks() {
@@ -365,13 +409,13 @@
     function fullReset() {
       score = 0;
       lives = 3;
-      level = 1;
+      level = selectedStartLevel;
       isRunning = false;
       isGameOver = false;
       createBricks();
       resetBallAndPaddle();
       updateStatus();
-      setMessage('「ゲーム開始」を押すとスタートします。');
+      setMessage('難易度を選んで「ゲーム開始」を押すとスタートします。');
       draw();
     }
 
@@ -648,15 +692,25 @@
     bindHoldButton(leftBtn, 'left');
     bindHoldButton(rightBtn, 'right');
 
+    easyBtn.addEventListener('click', function() {
+      selectStartLevel(1);
+    });
+
+    normalBtn.addEventListener('click', function() {
+      selectStartLevel(2);
+    });
+
+    hardBtn.addEventListener('click', function() {
+      selectStartLevel(3);
+    });
+
     startBtn.addEventListener('click', startGame);
     resetBtn.addEventListener('click', function() {
       fullReset();
     });
 
-    createBricks();
-    resetBallAndPaddle();
-    updateStatus();
-    draw();
+    updateLevelButtons();
+    fullReset();
     update();
   </script>
 
