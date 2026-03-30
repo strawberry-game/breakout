@@ -14,7 +14,6 @@
       --sub: #b7c3d9;
       --accent: #60a5fa;
       --accent2: #22c55e;
-      --danger: #f87171;
       --shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
     }
 
@@ -126,7 +125,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 14px;
+      margin-top: 18px;
     }
 
     .level-btn {
@@ -221,6 +220,34 @@
       text-align: center;
     }
 
+    .clear-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      color: white;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .clear-title {
+      font-size: clamp(34px, 7vw, 56px);
+      font-weight: 800;
+      color: #60a5fa;
+      margin-bottom: 10px;
+      letter-spacing: 0.06em;
+    }
+
+    .clear-subtitle {
+      font-size: 20px;
+      color: #e5eefc;
+      margin-bottom: 20px;
+    }
+
     @media (max-width: 800px) {
       .top-grid {
         grid-template-columns: 1fr;
@@ -259,13 +286,18 @@
             <div class="status-value" id="lives">3</div>
           </div>
           <div class="status-card">
-            <div class="status-label">残りブロック</div>
-            <div class="status-value" id="blocks">0</div>
-          </div>
-          <div class="status-card">
             <div class="status-label">レベル</div>
             <div class="status-value" id="level">1</div>
           </div>
+          <div class="status-card">
+            <div class="status-label">コンテニュー</div>
+            <div class="status-value" id="continueCount">1</div>
+          </div>
+        </div>
+        <div class="level-select">
+          <button class="secondary level-btn active" id="easyBtn" data-level="1">EASY</button>
+          <button class="secondary level-btn" id="normalBtn" data-level="2">NORMAL</button>
+          <button class="secondary level-btn" id="hardBtn" data-level="3">HARD</button>
         </div>
       </section>
 
@@ -274,15 +306,9 @@
         <ul class="controls">
           <li>PC：← → キーでパドルを移動</li>
           <li>スペースキー：開始 / 再開</li>
-          <li>スマホ：下の左右ボタンで移動</li>
           <li>ボールを落とすと残機が 1 つ減ります</li>
-          <li>EASY / NORMAL / HARD を選ぶと、そのレベルから開始します</li>
+          <li>コンテニューは 1 回だけ使えます</li>
         </ul>
-        <div class="level-select">
-          <button class="secondary level-btn active" id="easyBtn" data-level="1">EASY</button>
-          <button class="secondary level-btn" id="normalBtn" data-level="2">NORMAL</button>
-          <button class="secondary level-btn" id="hardBtn" data-level="3">HARD</button>
-        </div>
         <div class="button-row">
           <button class="primary" id="startBtn">ゲーム開始</button>
           <button class="secondary" id="resetBtn">最初からやり直す</button>
@@ -302,6 +328,14 @@
 
       <div class="message" id="messageBox">難易度を選んで「ゲーム開始」を押すとスタートします。</div>
     </section>
+
+    <div class="footer-note">© 2026 STRAWBERRY ALL RIGHTS RESERVED.</div>
+  </div>
+
+  <div id="clearOverlay" class="clear-overlay">
+    <div class="clear-title">ALL CLEAR</div>
+    <div class="clear-subtitle">HARD MODE COMPLETE</div>
+    <button id="replayBtn" class="primary">もう一度遊ぶ</button>
   </div>
 
   <script>
@@ -310,8 +344,8 @@
 
     const scoreEl = document.getElementById('score');
     const livesEl = document.getElementById('lives');
-    const blocksEl = document.getElementById('blocks');
     const levelEl = document.getElementById('level');
+    const continueEl = document.getElementById('continueCount');
     const messageBox = document.getElementById('messageBox');
     const startBtn = document.getElementById('startBtn');
     const resetBtn = document.getElementById('resetBtn');
@@ -320,6 +354,8 @@
     const easyBtn = document.getElementById('easyBtn');
     const normalBtn = document.getElementById('normalBtn');
     const hardBtn = document.getElementById('hardBtn');
+    const clearOverlay = document.getElementById('clearOverlay');
+    const replayBtn = document.getElementById('replayBtn');
 
     const paddle = {
       width: 140,
@@ -354,6 +390,7 @@
     let level = 1;
     let selectedStartLevel = 1;
     let remainingBlocks = 0;
+    let continueAvailable = 1;
     let isRunning = false;
     let isGameOver = false;
     let rightPressed = false;
@@ -372,6 +409,13 @@
       if (selectedStartLevel === 1) easyBtn.classList.add('active');
       if (selectedStartLevel === 2) normalBtn.classList.add('active');
       if (selectedStartLevel === 3) hardBtn.classList.add('active');
+    }
+
+    function updateStatus() {
+      scoreEl.textContent = score;
+      livesEl.textContent = lives;
+      levelEl.textContent = level;
+      continueEl.textContent = continueAvailable;
     }
 
     function selectStartLevel(nextLevel) {
@@ -406,12 +450,26 @@
       ball.dy = -(4 + (level - 1) * 0.5);
     }
 
+    function stopLoop() {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+    }
+
+    function startLoop() {
+      stopLoop();
+      animationId = requestAnimationFrame(update);
+    }
+
     function fullReset() {
       score = 0;
       lives = 3;
       level = selectedStartLevel;
+      continueAvailable = 1;
       isRunning = false;
       isGameOver = false;
+      clearOverlay.style.display = 'none';
       createBricks();
       resetBallAndPaddle();
       updateStatus();
@@ -424,10 +482,10 @@
       if (level > 3) {
         isRunning = false;
         isGameOver = true;
-        setMessage('全レベルクリアです。お見事でした。');
         updateStatus();
-        cancelAnimationFrame(animationId);
+        stopLoop();
         draw();
+        clearOverlay.style.display = 'flex';
         return;
       }
 
@@ -439,13 +497,6 @@
       draw();
     }
 
-    function updateStatus() {
-      scoreEl.textContent = score;
-      livesEl.textContent = lives;
-      blocksEl.textContent = remainingBlocks;
-      levelEl.textContent = level;
-    }
-
     function drawBall() {
       const grad = ctx.createRadialGradient(ball.x - 3, ball.y - 3, 2, ball.x, ball.y, ball.radius);
       grad.addColorStop(0, '#ffffff');
@@ -455,6 +506,25 @@
       ctx.fillStyle = grad;
       ctx.fill();
       ctx.closePath();
+    }
+
+    function roundRect(context, x, y, width, height, radius, fill) {
+      context.beginPath();
+      context.moveTo(x + radius, y);
+      context.lineTo(x + width - radius, y);
+      context.quadraticCurveTo(x + width, y, x + width, y + radius);
+      context.lineTo(x + width, y + height - radius);
+      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      context.lineTo(x + radius, y + height);
+      context.quadraticCurveTo(x, y + height, x, y + height - radius);
+      context.lineTo(x, y + radius);
+      context.quadraticCurveTo(x, y, x + radius, y);
+      context.closePath();
+      if (fill) {
+        context.fill();
+      } else {
+        context.stroke();
+      }
     }
 
     function drawPaddle() {
@@ -559,6 +629,34 @@
       drawGuide();
     }
 
+    function handleLifeLost() {
+      lives--;
+      updateStatus();
+
+      if (lives <= 0) {
+        if (continueAvailable > 0) {
+          continueAvailable--;
+          lives = 1;
+          isRunning = false;
+          resetBallAndPaddle();
+          updateStatus();
+          setMessage('コンテニューしました。スペースキーまたは開始ボタンで再開できます。');
+          return;
+        }
+
+        isRunning = false;
+        isGameOver = true;
+        setMessage('ゲームオーバーです。「最初からやり直す」で再挑戦できます。');
+        draw();
+        stopLoop();
+        return;
+      }
+
+      isRunning = false;
+      resetBallAndPaddle();
+      setMessage('ボールを落としてしまいました。スペースキーまたは開始ボタンで再開できます。');
+    }
+
     function update() {
       if (!isRunning) {
         draw();
@@ -585,20 +683,10 @@
           ball.dy = -Math.abs(ball.dy);
           ball.dx += hitPos * 1.8;
         } else if (ball.y + ball.dy > canvas.height - ball.radius) {
-          lives--;
-          updateStatus();
-
-          if (lives <= 0) {
-            isRunning = false;
-            isGameOver = true;
-            setMessage('ゲームオーバーです。「最初からやり直す」で再挑戦できます。');
-            draw();
-            cancelAnimationFrame(animationId);
+          handleLifeLost();
+          if (!isRunning) {
+            animationId = requestAnimationFrame(update);
             return;
-          } else {
-            isRunning = false;
-            resetBallAndPaddle();
-            setMessage('ボールを落としてしまいました。スペースキーまたは開始ボタンで再開できます。');
           }
         }
       }
@@ -624,30 +712,11 @@
 
       isRunning = true;
       isGameOver = false;
+      clearOverlay.style.display = 'none';
       setMessage('プレイ中です。すべてのブロックを壊してください。');
 
       if (shouldRestartLoop) {
-        cancelAnimationFrame(animationId);
-        animationId = requestAnimationFrame(update);
-      }
-    }
-
-    function roundRect(context, x, y, width, height, radius, fill) {
-      context.beginPath();
-      context.moveTo(x + radius, y);
-      context.lineTo(x + width - radius, y);
-      context.quadraticCurveTo(x + width, y, x + width, y + radius);
-      context.lineTo(x + width, y + height - radius);
-      context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-      context.lineTo(x + radius, y + height);
-      context.quadraticCurveTo(x, y + height, x, y + height - radius);
-      context.lineTo(x, y + radius);
-      context.quadraticCurveTo(x, y, x + radius, y);
-      context.closePath();
-      if (fill) {
-        context.fill();
-      } else {
-        context.stroke();
+        startLoop();
       }
     }
 
@@ -709,11 +778,15 @@
       fullReset();
     });
 
+    replayBtn.addEventListener('click', function() {
+      clearOverlay.style.display = 'none';
+      fullReset();
+      startLoop();
+    });
+
     updateLevelButtons();
     fullReset();
-    update();
+    startLoop();
   </script>
-
-<div class="footer-note">© 2026 STRAWBERRY ALL RIGHTS RESERVED.</div>
 </body>
 </html>
