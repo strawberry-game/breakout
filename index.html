@@ -572,12 +572,20 @@
     }
 
     function startGame() {
-      if (isGameOver && lives <= 0) {
+      const shouldRestartLoop = isGameOver && lives <= 0;
+
+      if (shouldRestartLoop) {
         fullReset();
       }
+
       isRunning = true;
       isGameOver = false;
       setMessage('プレイ中です。すべてのブロックを壊してください。');
+
+      if (shouldRestartLoop) {
+        cancelAnimationFrame(animationId);
+        animationId = requestAnimationFrame(update);
+      }
     }
 
     function roundRect(context, x, y, width, height, radius, fill) {
