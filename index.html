@@ -27,12 +27,16 @@
       background: linear-gradient(180deg, var(--bg1), var(--bg2));
       color: var(--text);
       overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
     }
 
     .wrap {
       width: min(960px, 100%);
       margin: 0 auto;
       padding: 24px 16px 32px;
+      flex: 1 0 auto;
     }
 
     .title-box,
@@ -344,6 +348,11 @@
     <button id="replayBtn" class="primary">もう一度遊ぶ</button>
   </div>
 
+  <footer class="site-footer">
+    <div class="footer-inner">
+      © 2026 STRAWBERRY ALL RIGHTS RESERVED.
+    </div>
+  </footer>
 
   <script>
     const canvas = document.getElementById('gameCanvas');
@@ -795,11 +804,5 @@
     fullReset();
     startLoop();
   </script>
-
-  <footer class="site-footer">
-    <div class="footer-inner">
-      © 2026 STRAWBERRY ALL RIGHTS RESERVED.
-    </div>
-  </footer>
 </body>
 </html>
